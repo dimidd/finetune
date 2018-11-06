@@ -211,6 +211,10 @@ class BaseModel(object, metaclass=ABCMeta):
             params=self.config
         )
 
+    def predict_one(self, X, input_func, estimator):
+        gen = estimator.predict(input_fn=input_func([X]), predict_keys=PredictMode.NORMAL)
+        return list(gen)[0]['NORM']
+
     def _inference(self, Xs, mode=None, estimator=None):
         if estimator is None:
             estimator = self.get_estimator()
