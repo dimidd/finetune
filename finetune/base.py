@@ -215,6 +215,30 @@ class BaseModel(object, metaclass=ABCMeta):
         gen = estimator.predict(input_fn=input_func([X]), predict_keys=PredictMode.NORMAL)
         return list(gen)[0]['NORM']
 
+    def _data_generator(self):
+        while not self._closed:
+            yield self._data.pop(0)
+
+    def _inference2(self, Xs, mode=None):
+        self._data = Xs
+        n = len(Xs)
+
+        if not getattr(self, 'estimator', None):
+            self.estimator = self.get_estimator()
+            self._closed = False
+            dataset = lambda: self.input_pipeline._dataset_without_targets(self._data_generator, train=None).batch(1)
+            self.predictions = self.estimator.predict(input_fn=dataset, yield_single_examples=True)
+
+        _predictions = []
+        for _ in range(n):
+            try:
+                y = next(self.predictions)
+            except:
+                raise e
+            y = y[mode] if mode else y
+            _predictions.append(y)
+        return _predictions
+
     def _inference(self, Xs, mode=None, estimator=None):
         if estimator is None:
             estimator = self.get_estimator()
